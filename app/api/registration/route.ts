@@ -7,18 +7,28 @@ export async function POST(req: NextRequest) {
     const { name, middlename, lastname, month, day, year, gender, address, contact, email, password } = body;
 
     const connection = await mysql.createConnection({
-      host: process.env.DB_HOST,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-    });
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+      });
 
-    
+      const [rows] = await connection.execute("SELECT * FROM tbl_user WHERE email = ?", [email]);
 
-    await connection.execute('INSERT INTO tbl_user (name, middle, lastname, month, day, year, gender, address, contact, email, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+    if (Array.isArray(rows) && rows.length > 0) {
+      return NextResponse.json({ message: "Email already exists" }, { status: 400 });
+    }
+
+
+    const [result] = await connection.execute('INSERT INTO tbl_user (name, middle, lastname, month, day, year, gender, address, contact, email, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
         [name, middlename, lastname, month, day, year, gender, address, contact, email, password]);
 
-    return NextResponse.json({ message: "User registered successfully" }, { status: 201 });
+        if (result && 'insertId' in result) {
+            return NextResponse.json({ message: "User registered successfully" }, { status: 201 });
+          } else {
+            return NextResponse.json({ message: "Error registering user" }, { status: 500 });
+          }
+   
   } catch (error) {
     return NextResponse.json({ message: "Server error", error }, { status: 500 });
   }
